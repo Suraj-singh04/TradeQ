@@ -39,6 +39,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FuncFormatter
 
+# ─── Add root to path for utils and config ────────────────────────────────────
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils import load_stock_data
+
 warnings.filterwarnings("ignore")
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
@@ -53,47 +57,38 @@ log = logging.getLogger(__name__)
 # ─── Configuration ────────────────────────────────────────────────────────────
 # Edit this list to compare any stocks you downloaded.
 # Keep it between 5 and 15 for readable charts.
-SYMBOLS = [
-    "RELIANCE",   "TCS",        "HDFCBANK",  "ICICIBANK",
-    "INFOSYS",    "SBIN",       "TATAMOTORS","MARUTI",
-    "SUNPHARMA",  "BAJFINANCE",
-]
+from config import CONFIG, get_symbols
 
-DATA_DIR   = "data/raw"
-CHARTS_DIR = "data/charts"
+SYMBOLS    = get_symbols("nifty50")
+DATA_DIR   = CONFIG["paths"]["raw_data"]
+CHARTS_DIR = CONFIG["paths"]["charts"]
+PALETTE    = CONFIG["charts"]["palette"]
 
-# Colors — one per stock (up to 15)
-PALETTE = [
-    "#378ADD", "#1D9E75", "#D85A30", "#EF9F27", "#7F77DD",
-    "#D4537E", "#639922", "#E24B4A", "#0F6E56", "#854F0B",
-    "#185FA5", "#993C1D", "#3C3489", "#5F5E5A", "#A32D2D",
-]
-
-CLR_BG   = "#FAFAF8"
-CLR_GRID = "#E8E6DF"
-CLR_TEXT = "#2C2C2A"
-CLR_MUTED= "#888780"
+CLR_BG   = CONFIG["charts"]["background"]
+CLR_GRID = CONFIG["charts"]["grid_color"]
+CLR_TEXT = CONFIG["charts"]["text_primary"]
+CLR_MUTED= CONFIG["charts"]["text_muted"]
 
 
 # ─── Data loading ─────────────────────────────────────────────────────────────
 
 def load_all_stocks(symbols: list[str], data_dir: str) -> dict[str, pd.DataFrame]:
     """
-    Load CSVs for all symbols. Skips any that are missing with a warning.
+    Load CSVs for all symbols using central load_stock_data.
+    Skips any that are missing with a warning.
 
     Returns:
         Dict mapping symbol name → DataFrame
     """
     stocks = {}
     for sym in symbols:
-        path = os.path.join(data_dir, f"{sym}.csv")
-        if not os.path.exists(path):
+        try:
+            df = load_stock_data(sym, data_dir)
+            stocks[sym] = df
+        except FileNotFoundError:
             log.warning(f"  {sym:<15} — CSV not found, skipping. Run download_stocks.py first.")
-            continue
-        df = pd.read_csv(path, index_col="Date", parse_dates=True)
-        df = df.sort_index()
-        stocks[sym] = df
-        log.info(f"  Loaded {sym:<15} — {len(df)} rows")
+        except Exception as e:
+            log.error(f"  {sym:<15} — Failed to load: {e}")
     return stocks
 
 

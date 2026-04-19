@@ -34,6 +34,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FuncFormatter
 
+# ─── Add root to path for utils and config ────────────────────────────────────
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils import load_stock_data
+
 warnings.filterwarnings("ignore")
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
@@ -46,37 +50,28 @@ log = logging.getLogger(__name__)
 
 
 # ─── Configuration ────────────────────────────────────────────────────────────
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from config import CONFIG, get_raw_path
+
 SYMBOL     = "RELIANCE"
-DATA_DIR   = "data/raw"
-CHARTS_DIR = "data/charts"
+DATA_DIR   = CONFIG["paths"]["raw_data"]
+CHARTS_DIR = CONFIG["paths"]["charts"]
 
 # Chart colors
-CLR_POS    = "#1D9E75"
-CLR_NEG    = "#D85A30"
-CLR_BLUE   = "#378ADD"
-CLR_AMBER  = "#EF9F27"
-CLR_PURPLE = "#7F77DD"
-CLR_BG     = "#FAFAF8"
-CLR_GRID   = "#E8E6DF"
-CLR_TEXT   = "#2C2C2A"
-CLR_MUTED  = "#888780"
+CLR_POS    = CONFIG["charts"]["candle_up"]
+CLR_NEG    = CONFIG["charts"]["candle_down"]
+CLR_BLUE   = CONFIG["charts"]["ema_short"]
+CLR_AMBER  = CONFIG["charts"]["ema_long"]
+CLR_PURPLE = CONFIG["charts"]["palette"][4]
+CLR_BG     = CONFIG["charts"]["background"]
+CLR_GRID   = CONFIG["charts"]["grid_color"]
+CLR_TEXT   = CONFIG["charts"]["text_primary"]
+CLR_MUTED  = CONFIG["charts"]["text_muted"]
 
 
 # ─── Data loading ─────────────────────────────────────────────────────────────
-
-def load_stock_data(symbol: str, data_dir: str) -> pd.DataFrame:
-    """Load and validate stock CSV. Same function pattern as plot_stock.py."""
-    filepath = os.path.join(data_dir, f"{symbol}.csv")
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(
-            f"No CSV for {symbol} at {filepath}\n"
-            f"Run download_stocks.py first."
-        )
-    df = pd.read_csv(filepath, index_col="Date", parse_dates=True)
-    df = df.sort_index()
-    log.info(f"Loaded {symbol}: {len(df)} rows | {df.index[0].date()} → {df.index[-1].date()}")
-    return df
-
 
 # ─── Feature engineering ──────────────────────────────────────────────────────
 

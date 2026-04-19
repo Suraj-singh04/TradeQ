@@ -32,6 +32,10 @@ import matplotlib.patches as mpatches
 import matplotlib.dates as mdates
 from matplotlib.gridspec import GridSpec
 
+# ─── Add root to path for utils and config ────────────────────────────────────
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils import load_stock_data
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -44,59 +48,28 @@ log = logging.getLogger(__name__)
 # ─── Configuration ────────────────────────────────────────────────────────────
 # Change SYMBOL to plot any stock you downloaded.
 # Pass as command-line arg too:  python3 phase1/plot_stock.py TATAMOTORS
-SYMBOL      = "RELIANCE"
-DATA_DIR    = "data/raw"
-CHARTS_DIR  = "data/charts"
-EMA_SHORT   = 20    # Short-term EMA period (days)
-EMA_LONG    = 50    # Long-term EMA period (days)
+from config import CONFIG, get_raw_path, get_chart_path
 
-# Chart colors — easy to change if you want a different look
-CLR_UP      = "#1D9E75"   # Green for up candles
-CLR_DOWN    = "#D85A30"   # Red/coral for down candles
-CLR_EMA20   = "#378ADD"   # Blue for 20-day EMA
-CLR_EMA50   = "#EF9F27"   # Amber for 50-day EMA
-CLR_52H     = "#1D9E75"   # Green dashed for 52-week high
-CLR_52L     = "#D85A30"   # Red dashed for 52-week low
-CLR_VOL_UP  = "#9FE1CB"   # Light green volume bars (up days)
-CLR_VOL_DN  = "#F5C4B3"   # Light coral volume bars (down days)
-CLR_BG      = "#FAFAF8"   # Chart background
-CLR_GRID    = "#E8E6DF"   # Grid lines
+SYMBOL = "RELIANCE"  # Default stock to plot (without .NS suffix)
+DATA_DIR   = CONFIG["paths"]["raw_data"]
+CHARTS_DIR = CONFIG["paths"]["charts"]
+EMA_SHORT  = CONFIG["indicators"]["ema_short"]
+EMA_LONG   = CONFIG["indicators"]["ema_long"]
+CLR_UP     = CONFIG["charts"]["candle_up"]
+CLR_DOWN   = CONFIG["charts"]["candle_down"]
+CLR_EMA20   = CONFIG["charts"]["ema_short"]
+CLR_EMA50   = CONFIG["charts"]["ema_long"]
+CLR_52H     = CONFIG["charts"]["high_52w"]
+CLR_52L     = CONFIG["charts"]["low_52w"]
+CLR_VOL_UP  = CONFIG["charts"]["volume_up"]
+CLR_VOL_DN  = CONFIG["charts"]["volume_down"]
+CLR_BG      = CONFIG["charts"]["background"]
+CLR_GRID    = CONFIG["charts"]["grid_color"]
+CLR_TEXT    = CONFIG["charts"]["text_primary"]
+CLR_MUTED   = CONFIG["charts"]["text_muted"]
 
 
 # ─── Data loading ─────────────────────────────────────────────────────────────
-
-def load_stock_data(symbol: str, data_dir: str) -> pd.DataFrame:
-    """
-    Load a stock's CSV from data/raw/ and validate it.
-
-    Args:
-        symbol:   Stock name without .NS e.g. "RELIANCE"
-        data_dir: Folder containing CSV files
-
-    Returns:
-        Cleaned DataFrame with OHLCV columns.
-    """
-    filepath = os.path.join(data_dir, f"{symbol}.csv")
-
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(
-            f"No CSV found for {symbol} at {filepath}\n"
-            f"Run download_stocks.py first to fetch the data."
-        )
-
-    df = pd.read_csv(filepath, index_col="Date", parse_dates=True)
-
-    required_columns = ["Open", "High", "Low", "Close", "Volume"]
-    missing = [c for c in required_columns if c not in df.columns]
-    if missing:
-        raise ValueError(f"CSV is missing columns: {missing}")
-
-    # Sort chronologically — always do this, CSVs can sometimes be unordered
-    df = df.sort_index()
-
-    log.info(f"Loaded {symbol}: {len(df)} rows from {df.index[0].date()} to {df.index[-1].date()}")
-    return df
-
 
 # ─── Feature calculation ──────────────────────────────────────────────────────
 
@@ -198,7 +171,7 @@ def draw_chart(df: pd.DataFrame, symbol: str) -> plt.Figure:
     # ── Volume bars ───────────────────────────────────────────────────────────
     vol_colors = [CLR_VOL_UP if up else CLR_VOL_DN for up in df["Is_Up"]]
     ax_volume.bar(x, df["Volume"] / 1_000_000, color=vol_colors, width=candle_width, linewidth=0)
-    ax_volume.set_ylabel("Volume (M)", fontsize=10, color="#888780")
+    ax_volume.set_ylabel("Volume (M)", fontsize=10, color=CLR_MUTED)
 
     # ── X-axis: show actual dates at sensible intervals ───────────────────────
     # Pick ~10 evenly spaced tick positions
@@ -210,7 +183,7 @@ def draw_chart(df: pd.DataFrame, symbol: str) -> plt.Figure:
     ax_price.set_xticks(tick_positions)
     ax_price.set_xticklabels([])             # Hide on price panel (shared x-axis)
     ax_volume.set_xticks(tick_positions)
-    ax_volume.set_xticklabels(tick_labels, fontsize=9, color="#888780")
+    ax_volume.set_xticklabels(tick_labels, fontsize=9, color=CLR_MUTED)
 
     # ── Styling ───────────────────────────────────────────────────────────────
     for ax in [ax_price, ax_volume]:
@@ -220,9 +193,9 @@ def draw_chart(df: pd.DataFrame, symbol: str) -> plt.Figure:
         ax.spines["right"].set_visible(False)
         ax.spines["left"].set_color(CLR_GRID)
         ax.spines["bottom"].set_color(CLR_GRID)
-        ax.tick_params(colors="#888780")
+        ax.tick_params(colors=CLR_MUTED)
 
-    ax_price.set_ylabel("Price (INR ₹)", fontsize=10, color="#888780")
+    ax_price.set_ylabel("Price (INR ₹)", fontsize=10, color=CLR_MUTED)
     ax_price.yaxis.set_major_formatter(
         plt.FuncFormatter(lambda val, _: f"₹{val:,.0f}")
     )
@@ -244,7 +217,7 @@ def draw_chart(df: pd.DataFrame, symbol: str) -> plt.Figure:
 
     fig.suptitle(
         f"{symbol}.NS   |   {date_range}   |   {sign}{change_pct:.1f}% over period",
-        fontsize=13, fontweight="500", color="#2C2C2A",
+        fontsize=13, fontweight="500", color=CLR_TEXT,
         x=0.05, ha="left", y=0.97
     )
 

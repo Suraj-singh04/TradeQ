@@ -34,26 +34,12 @@ log = logging.getLogger(__name__)
 # All Nifty 50 stocks. Yahoo Finance needs ".NS" suffix for NSE-listed stocks.
 # Change DOWNLOAD_PERIOD to "2y", "5y", or "max" when you want more history.
 
-NIFTY_50_SYMBOLS = [
-    "RELIANCE.NS",   "TCS.NS",        "HDFCBANK.NS",   "BHARTIARTL.NS",
-    "ICICIBANK.NS",  "INFOSYS.NS",    "SBIN.NS",        "HINDUNILVR.NS",
-    "ITC.NS",        "LT.NS",         "KOTAKBANK.NS",   "AXISBANK.NS",
-    "BAJFINANCE.NS", "MARUTI.NS",     "HCLTECH.NS",     "ASIANPAINT.NS",
-    "ADANIENT.NS",   "ADANIPORTS.NS", "ULTRACEMCO.NS",  "TITAN.NS",
-    "WIPRO.NS",      "NTPC.NS",       "POWERGRID.NS",   "COALINDIA.NS",
-    "SUNPHARMA.NS",  "BAJAJFINSV.NS", "ONGC.NS",        "M&M.NS",
-    "JSWSTEEL.NS",   "TATAMOTORS.NS", "TATASTEEL.NS",   "HINDALCO.NS",
-    "TECHM.NS",      "INDUSINDBK.NS", "CIPLA.NS",       "GRASIM.NS",
-    "BRITANNIA.NS",  "DRREDDY.NS",    "DIVISLAB.NS",    "BPCL.NS",
-    "TATACONSUM.NS", "APOLLOHOSP.NS", "HEROMOTOCO.NS",  "EICHERMOT.NS",
-    "NESTLEIND.NS",  "BAJAJ-AUTO.NS", "SBILIFE.NS",     "HDFCLIFE.NS",
-    "SHRIRAMFIN.NS", "TRENT.NS",
-]
+from config import CONFIG, get_symbols, get_raw_path
 
-DOWNLOAD_PERIOD = "1y"       # How much history to download ("1y", "2y", "5y", "max")
-OUTPUT_DIR      = "data/raw" # Where CSV files are saved
-PAUSE_SECONDS   = 0.5        # Small pause between downloads — avoids rate limiting
-
+SYMBOLS        = get_symbols("nifty50")
+OUTPUT_DIR     = CONFIG["paths"]["raw_data"]
+DOWNLOAD_PERIOD= CONFIG["download"]["default_period"]
+PAUSE_SECONDS  = CONFIG["download"]["pause_seconds"]
 
 # ─── Helper functions ─────────────────────────────────────────────────────────
 
@@ -148,15 +134,15 @@ def print_summary(results: list[dict]) -> None:
 
 def main():
     log.info("TradeQ — Phase 1 Stock Downloader")
-    log.info(f"Downloading {len(NIFTY_50_SYMBOLS)} Nifty 50 stocks | Period: {DOWNLOAD_PERIOD}")
+    log.info(f"Downloading {len(SYMBOLS)} Nifty 50 stocks | Period: {DOWNLOAD_PERIOD}")
     log.info("─" * 50)
 
     ensure_output_dir(OUTPUT_DIR)
 
     results = []
 
-    for i, symbol in enumerate(NIFTY_50_SYMBOLS, start=1):
-        log.info(f"[{i:>2}/{len(NIFTY_50_SYMBOLS)}] Downloading {symbol} ...")
+    for i, symbol in enumerate(SYMBOLS, start=1):
+        log.info(f"[{i:>2}/{len(SYMBOLS)}] Downloading {symbol} ...")
 
         df = download_single_stock(symbol, DOWNLOAD_PERIOD)
 
