@@ -1,0 +1,7 @@
+yfinance
+pandas
+pandas-ta
+matplotlib
+mplfinance
+requests
+python-dotenv
