@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: tradeq_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tradeq
+      POSTGRES_PASSWORD: tradeq_secret
+      POSTGRES_DB: tradeq_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - tradeq_pgdata:/var/lib/postgresql/data
+      - ./phase2/database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U tradeq -d tradeq_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tradeq_pgdata:
+    name: tradeq_pgdata
