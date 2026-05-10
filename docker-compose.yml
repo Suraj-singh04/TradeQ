@@ -15,7 +15,21 @@ services:
       - tradeq_pgdata:/var/lib/postgresql/data
       - ./phase2/database/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U tradeq -d tradeq_db" ]
+      test: ["CMD-SHELL", "pg_isready -U tradeq -d tradeq_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tradeq_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - tradeq_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,3 +37,5 @@ services:
 volumes:
   tradeq_pgdata:
     name: tradeq_pgdata
+  tradeq_redis_data:
+    name: tradeq_redis_data
