@@ -525,28 +525,43 @@ def run_full(engine: sa.Engine, stock_map: dict[str, int], macro: pd.DataFrame) 
     print("═" * 55 + "\n")
 
 
-def run_daily(engine: sa.Engine, stock_map: dict[str, int], macro: pd.DataFrame) -> None:
-    """Compute features for yesterday only. Run every evening after market close."""
-    yesterday = date.today() - timedelta(days=1)
-    log.info(f"MODE: daily — computing features for {yesterday}")
+def run_daily(engine, stock_map, macro):
+    """
+    Compute features for all days missing from features_daily.
+    More robust than checking only yesterday — catches multi-day gaps.
+    """
+    from sqlalchemy import text
+    log.info(f"MODE: daily — filling missing feature rows")
 
     nifty_ret = macro["nifty_ret"] if "nifty_ret" in macro.columns else pd.Series(dtype=float)
     success = 0
 
     for symbol, stock_id in stock_map.items():
+        # Find the latest feature date for this stock
+        with engine.connect() as conn:
+            latest_feat = conn.execute(text(
+                "SELECT MAX(time)::date FROM features_daily WHERE stock_id = :sid"
+            ), {"sid": stock_id}).scalar()
+
         df = load_ohlcv(engine, stock_id)
         if df is None:
             continue
+
         try:
             features = compute_features(df, macro)
             features = compute_labels(features, nifty_ret)
-            # Only write yesterday's row
-            if yesterday in features.index:
-                day_features = features.loc[[yesterday]]
-                inserted = write_features(engine, stock_id, day_features)
-                if inserted:
-                    success += 1
-                    log.info(f"  {symbol:<20} features written for {yesterday}")
+
+            # Only write rows newer than what's already in features_daily
+            if latest_feat is not None:
+                features = features[features.index.date > latest_feat]
+
+            if features.empty:
+                continue
+
+            inserted = write_features(engine, stock_id, features)
+            if inserted:
+                success += 1
+                log.info(f"  {symbol:<20} {inserted} new feature rows written")
         except Exception as e:
             log.error(f"  {symbol} — {e}")
 
