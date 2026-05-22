@@ -59,7 +59,7 @@ CONFIG = {
     "symbols": {
         "nifty50": [
             "RELIANCE.NS",   "TCS.NS",        "HDFCBANK.NS",   "BHARTIARTL.NS",
-            "ICICIBANK.NS",  "INFOSYS.NS",     "SBIN.NS",       "HINDUNILVR.NS",
+            "ICICIBANK.NS",  "INFY.NS",     "SBIN.NS",       "HINDUNILVR.NS",
             "ITC.NS",        "LT.NS",          "KOTAKBANK.NS",  "AXISBANK.NS",
             "BAJFINANCE.NS", "MARUTI.NS",      "HCLTECH.NS",    "ASIANPAINT.NS",
             "ADANIENT.NS",   "ADANIPORTS.NS",  "ULTRACEMCO.NS", "TITAN.NS",
