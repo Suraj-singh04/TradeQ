@@ -146,7 +146,8 @@ def load_macro_data(engine: sa.Engine) -> pd.DataFrame:
 
     for col, symbol in indices.items():
         try:
-            df = yf.download(symbol, period="1y", auto_adjust=True, progress=False)
+            period = "5y" if col == "nifty_ret" else "1y"
+            df = yf.download(symbol, period=period, auto_adjust=True, progress=False)
             if df.empty:
                 continue
             s = df["Close"].squeeze()
